@@ -1,17 +1,15 @@
 name: Airtable Unit Monitor
 
-# cron activated
-
 on:
   schedule:
-    - cron: "* * * * *"   # every 5 minutes
+    - cron: "*/5 * * * *"   # every 1 minute (use */5 for every 5 minutes)
   workflow_dispatch: {}
 
 jobs:
   monitor:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # allows saving units_state.json back to repo
+      contents: write
 
     steps:
       - name: Checkout repo
@@ -34,15 +32,25 @@ jobs:
           EMAIL_APP_PASSWORD: ${{ secrets.EMAIL_APP_PASSWORD }}
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
           FORM_URL: ${{ secrets.FORM_URL }}
+          PRONTO_URL: ${{ secrets.PRONTO_URL }}  # optional if you add it
         run: |
           python monitor_units.py
 
       - name: Commit state file if changed
         run: |
+          git status --porcelain
           if [ -n "$(git status --porcelain)" ]; then
             git config user.name "github-actions"
             git config user.email "github-actions@github.com"
-            git add units_state.json pronto_state.json
+
+            [ -f units_state.json ] && git add units_state.json
+            [ -f pronto_state.json ] && git add pronto_state.json
+
+            if git diff --cached --quiet; then
+              echo "Nothing staged to commit."
+              exit 0
+            fi
+
             git commit -m "Update unit state"
             git push
           else
