@@ -77,5 +77,4 @@ async def main():
         print("No change detected.")
 
 if __name__ == "__main__":
-    send_email("Test Alert", "This is a test email.")
     asyncio.run(main())
